@@ -8,6 +8,8 @@ import gtk.glade
 import numpy as np
 import os
 #import random
+#import matplotlib
+#matplotlib.use('TkAgg')
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTK as Canvas
 from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
 from pylab import figure
@@ -80,7 +82,6 @@ class GraphPlotter(gtk.Window):
                         color = colors[self.color_nb]
                         self.color_nb +=1 
                         if self.color_nb == 7 : self.color_nb = 0
-
                         content.extend(({'name':value, 'datas':list(), 'pos':j, 'plot_x':None, 'color':color, 'dot_type':'-', 'visible':False},))
                     else :
                         element = content.get_by_pos(j)
@@ -104,6 +105,9 @@ class GraphPlotter(gtk.Window):
             self.update_process_percent(i, len(to_remove), 95, 0.05)
             if empty_element in content :
                     content.remove(empty_element)
+        print '-------------------------------'
+        for data in content : print data
+        print '-------------------------------'
         self.set_progress_text('parsing file %s done\n adding data to treeview' %filename)
         self.datas.extend(({'filepath':filepath, 'filename':filename, 'content':content, },))
         self.treeview_append_data({'filepath':filepath, 'filename':filename, 'content':content, })
@@ -132,18 +136,28 @@ class GraphPlotter(gtk.Window):
                 self.progress_dialog.set_progress(self.process_percent/100.)
 
 #MATPLOTLIB FUNCTIONS
-    def draw_element(self, element):
+    def draw_element(self, element, redraw=False):
         color = element['color']
         if element['plot_x'] is not None :
             plot_x = element['plot_x']
         else :
             plot_x = np.array(range(element['datas'].shape[0])).T
         plot_y = element['datas'].T
-        l = self.ax_list[element['graph_position']].plot( plot_x, plot_y, '%s%s' %(color,element['dot_type']), label=element['name'])
+        try :
+            logger.debug('draw line as %s%s' %(color,element['dot_type']))
+            l = self.ax_list[element['graph_position']].plot( plot_x, plot_y, '%s%s' %(color,element['dot_type']), label=element['name'])
+        except Exception,e :
+            logger.error('error when drawing datas %s : %s' %(Exception,e))
+            return False 
         element['line'] = l
         element['ploted'] = l[0]
-        l[0].set_visible(element['displayed'])
+        l[0].set_visible(element['visible'])
         self.update_legend(element['graph_position'])
+        if redraw :
+            for i in range(self.nb_graph-1) :
+                self.update_legend(i)
+            self.canvas.draw()
+        return True
         #self.update_limits(element['graph_position'])
 
     def update_legend(self, graph_position):
@@ -151,7 +165,7 @@ class GraphPlotter(gtk.Window):
         graph_names = list()
         for filedata in self.datas :
             for content in filedata['content'] :
-                if content.has_key('graph_position') and content.has_key('displayed') and content['graph_position'] == graph_position and content['displayed'] and content.has_key('line') :
+                if content.has_key('graph_position') and content.has_key('visible') and content['graph_position'] == graph_position and content['visible'] and content.has_key('line') :
                     graph_lines.append(content['ploted'])
                     graph_names.append(content['name'])
         if len(graph_lines) > 0 and len(graph_names) > 0 :
@@ -161,7 +175,7 @@ class GraphPlotter(gtk.Window):
         displayed_datas = list()
         for filedata in self.datas :
             for content in filedata['content'] :
-                if content.has_key('graph_position') and content.has_key('displayed') and content['graph_position'] == graph_position and content['displayed'] :
+                if content.has_key('graph_position') and content.has_key('visible') and content['graph_position'] == graph_position and content['visible'] :
                     displayed_datas.append(content['datas'])
         min_y = 100000000
         max_y = 0
@@ -201,7 +215,7 @@ class GraphPlotter(gtk.Window):
         for filedatas in self.datas :
             for element in filedatas['content'] :
                 element['ploted'] = None
-                if element.has_key('displayed') and element['displayed'] : 
+                if element.has_key('visible') and element['visible'] : 
                     self.draw_element(element)
         self.canvas.draw()
 
@@ -237,53 +251,77 @@ class GraphPlotter(gtk.Window):
             fig.autoscale_view()
         self.canvas.draw()
 
-#TREEVIEW ACTIONS
-    def on_position_edited(self, column, path, val):
-        if int(val) != self.treestore[path][2] and int(val)<=self.nb_graph :
-            self.treestore[path][2] = int(val)
-            element = self.get_element_from_treestore_path(path)
-            if element is not None :
-                if element.has_key('ploted') and element['ploted'] is not None :
-                    element['ploted'].set_visible(False)
-                element['ploted'] = None
-                element['graph_position'] = int(val) -1
-                self.draw_element(element)
-            for i in range(self.nb_graph-1) :
-                self.update_legend(i)
-            self.canvas.draw()
-
-    def on_name_edited(self, column, path, name):
-        if name != self.treestore[path][0] :
-            element = self.get_element_from_treestore_path(path)
-            self.treestore[path][0] = name
-            if element is not None :
-                element['name'] = name
-                self.update_legend(element['graph_position'])
-            self.canvas.draw()
-
-    def treeview_append_data(self, datas):
-        parent_line = self.treestore.append( None, (datas['filename'], None, 1, None, gtk.STOCK_PREFERENCES ))
-        datas['treeline'] = parent_line
-        for content in datas['content'] :
-            line = self.treestore.append( parent_line, (content['name'],None, 1, None, gtk.STOCK_PREFERENCES ))
-            content['treeline'] = line
-            content['displayed'] = False
-            content['graph_position'] = 0
-            content['color'] = ''
-
-    def on_treestore_toggle_pressed(self, column, path):
-        self.treestore[path][1] = not self.treestore[path][1]
-        element = self.get_element_from_treestore_path(path)
-        if element is not None :
-            element['displayed'] = self.treestore[path][1]
-            element['graph_position'] = self.treestore[path][2]-1
+#DATAS ACTIONS
+    def set_data_position(self, treestore_path, element, val, redraw=True):
+        if int(val) != self.treestore[treestore_path][2] and int(val)<=self.nb_graph :
+            self.treestore[treestore_path][2] = int(val)
             if element.has_key('ploted') and element['ploted'] is not None :
-                element['ploted'].set_visible(element['displayed'])
-                #self.update_limits(element['graph_position'])
+                element['ploted'].set_visible(False)
+            element['ploted'] = None
+            element['graph_position'] = int(val)
+            if redraw :
+                for i in range(self.nb_graph-1) :
+                    self.update_legend(i)
+                self.draw_element(element)
+                self.canvas.draw()
+
+    def set_data_name(self, treestore_path, element, name, redraw=True):
+        self.treestore[treestore_path][0] = name
+        element['name'] = name
+        self.update_legend(element['graph_position'])
+        if redraw :
+            self.canvas.draw()
+
+    def set_data_visibility(self, treestore_path, element, visible, redraw=True):
+        self.treestore[treestore_path][1] = visible
+        element['visible'] = visible
+        element['graph_position'] = self.treestore[treestore_path][2]
+        if redraw:
+            if element.has_key('ploted') and element['ploted'] is not None :
+                element['ploted'].set_visible(visible)
                 self.update_legend(element['graph_position'])
             else :
                 self.draw_element(element)
             self.canvas.draw()
+
+    def set_data_color(self, treestore_path, element, color, redraw=True):
+        element['color'] = color
+        if redraw :
+            self.draw_element(element)
+            self.canvas.draw()
+
+    def set_data_dot(self, treestore_path, element, dot, redraw=True):
+        element['dot_type'] = dot
+        if redraw :
+            self.draw_element(element)
+            self.canvas.draw()
+
+#TREEVIEW ACTIONS
+    def treeview_append_data(self, datas):
+        parent_line = self.treestore.append( None, (datas['filename'], None, 0, None, None ))
+        datas['treeline'] = parent_line
+        for content in datas['content'] :
+            line = self.treestore.append( parent_line, (content['name'],None, 0, None, gtk.STOCK_PREFERENCES ))
+            content['treeline'] = line
+            content['visible'] = False
+            content['graph_position'] = 0
+
+    def on_position_edited(self, column, path, val):
+        element = self.get_element_from_treestore_path(treestore_path)
+        if element is not None :
+            self.set_data_position(treestore_path, element, val)
+
+    def on_name_edited(self, column, path, name):
+        if name != self.treestore[path][0] :
+            element = self.get_element_from_treestore_path(path)
+            if element is not None :
+                self.set_data_name(path, element, name)
+
+    def on_treestore_toggle_pressed(self, column, path):
+        visible = not self.treestore[path][1]
+        element = self.get_element_from_treestore_path(path)
+        if element is not None :
+            self.set_data_visibility(path, element, visible)
 
     def on_axe_x_toggle_pressed(self, column, path):
         #only iter for one file
@@ -304,7 +342,15 @@ class GraphPlotter(gtk.Window):
         #ToDo updates graphs for file 
 
     def on_treestore_settings_pressed(self, column, path):
-        print 'on settings pressed'
+        element = self.get_element_from_treestore_path(path)
+        def callback(return_element):
+            self.set_data_name(path, element, return_element['name'], redraw=False)
+            self.set_data_position(path, element, return_element['graph_position'], redraw=False)
+            self.set_data_visibility(path, element, return_element['visible'], redraw=False)
+            self.set_data_color(path, element, return_element['color'], redraw=False)
+            self.set_data_dot(path, element, return_element['dot_type'], redraw=False)
+            self.draw_element(element, redraw=True)
+        dialog = DataSettingsDialog(element, callback)
 
 #BUILD BUTTONS
     def build(self):
@@ -330,8 +376,8 @@ class GraphPlotter(gtk.Window):
 
         menu = gtk.HBox(False, 0)
         top_container.pack_start(menu, expand=False)
-        open_file_button = self.build_open_file_button()
-        menu.pack_start(open_file_button, expand=True)
+        toolbar = self.build_toolbar_button()
+        menu.pack_start(toolbar, expand=False)
         adjuster = self.build_adjuster()
         menu.pack_end(adjuster, expand=False)
         matplotlib_toolbar = NavigationToolbar(self.canvas, self)
@@ -339,17 +385,33 @@ class GraphPlotter(gtk.Window):
 
         self.show_all()
 
-    def build_open_file_button(self):
-        image = gtk.Image()
-        image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
-        button = gtk.Button()
-        button.set_image(image)
+    def build_toolbar_button(self):
+        toolbar = gtk.Toolbar()
+        open_image = gtk.Image()
+        open_image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
         def on_file_selected(content):
             self.open_path(content)
         def on_open_file_pressed(event):
             FileChooser(on_file_selected)
-        button.connect("clicked", on_open_file_pressed)
-        return button
+        #button.connect("clicked", on_open_file_pressed)
+        open_button = toolbar.append_item("Open", "Open file", "open", open_image, on_open_file_pressed)
+
+        def on_clear_pressed(event):
+            self.treestore.clear()
+            self.datas = DictList()
+            for ax in self.ax_list :
+                ax.clear()
+        clear_image = gtk.Image()
+        clear_image.set_from_stock(gtk.STOCK_DELETE, gtk.ICON_SIZE_BUTTON)
+        fit_button = toolbar.append_item("Clear", "Remove all datas","remove", clear_image, on_clear_pressed)
+
+        def on_zoom_fit_pressed(event):
+            for fig in self.ax_list : fig.autoscale_view()
+            self.canvas.draw()
+        zoom_fit_image = gtk.Image()
+        zoom_fit_image.set_from_stock(gtk.STOCK_ZOOM_FIT, gtk.ICON_SIZE_BUTTON)
+        fit_button = toolbar.append_item("Zoom fit", "Zoom fit","fit", zoom_fit_image, on_zoom_fit_pressed)
+        return toolbar
 
     def build_treeview(self):
         self.treestore = treestore = gtk.TreeStore( gobject.TYPE_STRING, gobject.TYPE_BOOLEAN, int , gobject.TYPE_BOOLEAN, str)
@@ -416,6 +478,61 @@ class GraphPlotter(gtk.Window):
             toolbar.pack_end(button)
         return toolbar
 
+class CellRendererClickablePixbuf(gtk.CellRendererPixbuf):
+    __gsignals__ = {'clicked': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
+                                (gobject.TYPE_STRING,))
+                   }
+    def do_activate(self, event, widget, path, background_area, cell_area, flags):
+        self.emit('clicked', path)
+    def __init__(self):
+        gtk.CellRendererPixbuf.__init__(self)
+        self.set_property('mode', gtk.CELL_RENDERER_MODE_ACTIVATABLE)
+
+class DataSettingsDialog(gtk.Window):
+    def __init__(self, element, callback):
+        super(DataSettingsDialog, self).__init__()
+        dialog = gtk.Dialog('%s settings' %element['name'],self, gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_DESTROY_WITH_PARENT,
+                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_APPLY, gtk.RESPONSE_OK))
+        
+        name_entry = gtk.Entry()
+        name_entry.set_text(element['name'])
+        visible_entry = gtk.CheckButton(label=None)
+        visible_entry.set_active(element['visible'])
+        graph_entry = gtk.Entry()
+        graph_entry.set_text('%s' %(element['graph_position']))
+        color_entry = gtk.combo_box_new_text()
+        colors = ['g','r','b','c','m','k','y']
+        for color in colors :
+            color_entry.append_text(color)
+        color_entry.set_active(colors.index(element['color']))
+        dot_entry =  gtk.combo_box_new_text()
+        dots = ['-','--','.',',','o','8','s','*','+','x','d','|','_']
+        for dot in dots :
+            dot_entry.append_text(dot)
+        dot_entry.set_active(dots.index(element['dot_type']))
+        buttons = [['Name :', name_entry], ['Visible :', visible_entry], ['Position :', graph_entry], ['Color :', color_entry], ['Dots : (really slow)', dot_entry],]
+
+        for button in buttons :
+            box = gtk.HBox()
+            dialog.vbox.pack_start(box)
+            title = gtk.Label(button[0])
+            box.pack_start(title, expand=True)
+            box.pack_end(button[1], expand=True)
+            box.show()
+            title.show()
+            button[1].show()
+
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            element['name'] = name_entry.get_text()
+            element['visible'] = visible_entry.get_active()
+            element['graph_position'] = int(graph_entry.get_text())
+            element['color'] = colors[color_entry.get_active()]
+            element['dot_type'] = dots[dot_entry.get_active()]
+            dialog.destroy()
+            callback(element)
+        else : dialog.destroy()
+
 class ProgressDialog(gtk.Window):
     def __init__(self):
         super(ProgressDialog, self).__init__()
@@ -438,16 +555,6 @@ class ProgressDialog(gtk.Window):
     def set_progress(self, value):
         self.progress_label.set_text('%s percent' %int(value*100))
         self.progress_bar.set_fraction(value)
-
-class CellRendererClickablePixbuf(gtk.CellRendererPixbuf):
-    __gsignals__ = {'clicked': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                                (gobject.TYPE_STRING,))
-                   }
-    def do_activate(self, event, widget, path, background_area, cell_area, flags):
-        self.emit('clicked', path)
-    def __init__(self):
-        gtk.CellRendererPixbuf.__init__(self)
-        self.set_property('mode', gtk.CELL_RENDERER_MODE_ACTIVATABLE)
 
 class FileChooser(gtk.Window):
     def __init__(self, callback):
