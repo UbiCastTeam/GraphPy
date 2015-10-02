@@ -84,44 +84,29 @@ class GraphPlotter(gtk.Window):
         filename = os.path.basename(filepath)
         self.set_progress_text('parsing new file %s ...' %filename)
         lines = self.get_data_from_file(filepath)
-        separator = '\t'
-        title_line = True
         content = DictList()
-        if lines is not None:
+        if lines is not None :
             self.set_progress_text('nb lines found %s\n parsing lines ...' %len(lines))
-            for i, line in enumerate(lines):
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    logger.debug(line)
-                    self.update_process_percent(i, len(lines), 0, 0.8)
-                    datas = line.split(separator)
-                    if len(datas) <= 1:
-                        logger.info('Tab separator not found, trying comma')
-                        separator = ','
-                    datas = line.split(separator)
-                    logger.info("Found %s fields (%s)" %(len(datas), datas))
-                    for j, value in enumerate(datas):
-                        if value == '':
-                            value = 0
-                        if title_line:
-                            colors = ['g','r','b','c','m','k','y']
-                            color = colors[self.color_nb]
-                            self.color_nb += 1 
-                            if self.color_nb == 7 :
-                                self.color_nb = 0
-                            content.extend(({'name':value, 'datas':list(), 'pos':j, 'plot_x':None, 'color':color, 'dot_type':'-', 'visible':False},))
-                        else :
-                            element = content.get_by_pos(j)
+            for i,line in enumerate(lines):
+                self.update_process_percent(i, len(lines), 0, 0.8)
+                datas = line.rstrip('\n').split('\t')
+                for j,value in enumerate(datas):
+                    if value == '': value = 0
+                    if i == 0:
+                        colors = ['g','r','b','c','m','k','y']
+                        color = colors[self.color_nb]
+                        self.color_nb +=1 
+                        if self.color_nb == 7 : self.color_nb = 0
+                        content.extend(({'name':value, 'datas':list(), 'pos':j, 'plot_x':None, 'color':color, 'dot_type':'-', 'visible':False, 'graph_position':0 ,'filename':filename},))
+                    else :
+                        element = content.get_by_pos(j)
+                        try:
+                            element['datas'].append(int(value))
+                        except Exception:
                             try:
-                                element['datas'].append(int(value))
+                                element['datas'].append(float(value))
                             except Exception:
-                                try:
-                                    element['datas'].append(float(value))
-                                except Exception:
-                                    pass
-                    title_line = False
-                else:
-                    logger.debug('Skipping comments line')
+                                pass
         to_remove = list()
         self.set_progress_text('nb columns found %s\n check for unvalid datas ...' %len(content))
         for i,element in enumerate(content) :
