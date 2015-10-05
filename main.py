@@ -466,6 +466,7 @@ class DataSettingsDialog(gtk.Window):
         for data in current_file_datas['content'] :
             plot_x.append(data['name'])
             plot_x_entry.append_text(data['name'])
+        plot_x_entry.set_active(plot_x.index(element['plot_x']))
 
         buttons = [['Name :', name_entry], ['Visible :', visible_entry], ['Position :', graph_entry], ['Color :', color_entry], ['Dots : (really slow)', dot_entry], ['Axe x', plot_x_entry]]
 
