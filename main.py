@@ -226,8 +226,6 @@ class GraphPlotter(gtk.Window):
         else :
             plot_x = np.array(range(element['datas'].shape[0])).T
         plot_y = element['datas'].T
-        print plot_x 
-        print plot_y
         try :
             logger.debug('draw line as %s%s' %(color,element['dot_type']))
             l = self.ax_list[element['graph_position']].plot( plot_x, plot_y, '%s%s' %(color,element['dot_type']), label=element['name'])
@@ -288,6 +286,11 @@ class GraphPlotter(gtk.Window):
         if min_x is not None and max_x is not None:
             print 'set window limit x from %s to %s' %(min_x, max_x)
             self.ax_list[graph_position].set_xlim([min_x, max_x])
+        else :
+            print 'autoscale' 
+            lenght = np.max([len(data) for data in displayed_datas ])
+            self.ax_list[graph_position].set_xlim([0, lenght])
+        self.canvas.draw()
 
     def update_ax_list(self):
         for ax in self.ax_list :
@@ -458,7 +461,8 @@ class DataSettingsDialog(gtk.Window):
         dot_entry.set_active(dots.index(element['dot_type']))
 
         plot_x_entry = gtk.combo_box_new_text()
-        plot_x = list()
+        plot_x = [None]
+        plot_x_entry.append_text('None')
         for data in current_file_datas['content'] :
             plot_x.append(data['name'])
             plot_x_entry.append_text(data['name'])
