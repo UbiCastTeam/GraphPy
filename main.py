@@ -15,25 +15,25 @@ except ImportError,e :
 try : 
     import numpy as np
 except ImportError :
-    raise ImportError('Could not import Numpy. Please make sure that you have Numpy : %s' %e)
+    raise ImportError('Could not import Numpy. Please make sure that you have Numpy')
 try :
     from matplotlib.backends.backend_gtkagg import FigureCanvasGTK as Canvas
 except ImportError :
     try : 
         from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as Canvas
     except ImportError :
-        raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib : %s' %e)
+        raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib')
 try :
     from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
 except ImportError :
     try : 
         from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
     except ImportError :
-        raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib : %s' %e)
+        raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib' )
 try :
     from pylab import figure
 except ImportError :
-    raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib : %s' %e)
+    raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib' )
 import gobject
 import os
 from dictlist import DictList
@@ -257,10 +257,13 @@ class GraphPlotter(gtk.Window):
 
     def update_limits(self, graph_position):
         displayed_datas = list()
+        displayed_x = list()
         for filedata in self.datas :
             for content in filedata['content'] :
                 if content.has_key('graph_position') and content.has_key('visible') and content['graph_position'] == graph_position and content['visible'] :
                     displayed_datas.append(content['datas'])
+                    if content['plot_x'] is not None:
+                        displayed_x.append(filedata['content'].get_by_name(content['plot_x'])['datas'])
         min_y = None
         max_y = None
         for data in displayed_datas :
@@ -270,11 +273,21 @@ class GraphPlotter(gtk.Window):
             else : min_y = min(min_y, min_current_data)
             if max_y is None : max_y = max_current_data
             else : max_y = max(max_y, max_current_data)
-        print '>>>>>>>>>>'
-        print min_y
-        print max_y
-        print '>>>>>>>>>>'
+        print 'set window limit y from %s to %s' %(min_y, max_y)
         self.ax_list[graph_position].set_ylim([min_y, max_y])
+
+        min_x = None
+        max_x = None
+        for x in displayed_x :
+            min_current_x = np.min(x)
+            max_current_x = np.max(x)
+            if min_x is None : min_x = min_current_x
+            else : min_x = min(min_x, min_current_x)
+            if max_x is None : max_x = max_current_x
+            else : max_x = max(max_x, max_current_x)
+        if min_x is not None and max_x is not None:
+            print 'set window limit x from %s to %s' %(min_x, max_x)
+            self.ax_list[graph_position].set_xlim([min_x, max_x])
 
     def update_ax_list(self):
         for ax in self.ax_list :
@@ -340,7 +353,7 @@ class GraphPlotter(gtk.Window):
         self.right_menu.pack_start(adjuster, expand=False)
         #build grap panel
         self.fig = figure(figsize=(15,8),facecolor='#f0ebe2')
-        self.fig.subplots_adjust(left=0.03, bottom=0.03, right=0.97, top=0.97, hspace=0.06, wspace=0.06)
+        self.fig.subplots_adjust(left=0.03, bottom=0.04, right=0.97, top=0.97, hspace=0.06, wspace=0.06)
         self.canvas = Canvas(self.fig)
         self.panel.pack_end(self.canvas,expand=True)
         #build toolbars
