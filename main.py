@@ -241,6 +241,11 @@ class GraphPlotter(gtk.Window):
                 self.update_legend(i)
             self.canvas.draw()
         self.update_limits(element['graph_position'])
+        #self.ax_list[element['graph_position']].legend.draggable(True)
+        #self.ax_list[element['graph_position']].legend.mpl_connect('button_press_event', self.on_legend_press)
+
+    def on_legend_press(self, event):
+        print 'you pressed', event.button, event.xdata, event.ydata
 
     def update_legend(self, graph_position):
         graph_lines = list()
@@ -251,7 +256,11 @@ class GraphPlotter(gtk.Window):
                     graph_lines.append(content['ploted'])
                     graph_names.append(content['name'])
         if len(graph_lines) > 0 and len(graph_names) > 0 :
-            self.ax_list[graph_position].legend(graph_lines, graph_names, loc=1)
+            legend = self.ax_list[graph_position].legend(graph_lines, graph_names, loc=1)
+            legend.draggable(True)
+            #print '________________'
+            #print legend
+            #print dir(legend)
 
     def update_limits(self, graph_position):
         displayed_datas = list()
@@ -469,7 +478,6 @@ class DataSettingsDialog(gtk.Window):
         plot_x_entry.set_active(plot_x.index(element['plot_x']))
 
         buttons = [['Name :', name_entry], ['Visible :', visible_entry], ['Position :', graph_entry], ['Color :', color_entry], ['Dots : (really slow)', dot_entry], ['Axe x', plot_x_entry]]
-
         for button in buttons :
             box = gtk.HBox()
             dialog.vbox.pack_start(box)
