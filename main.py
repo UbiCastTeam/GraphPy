@@ -348,7 +348,7 @@ class GraphPlotter(gtk.Window):
         self.add(top_container)
         #build panel
         self.panel = gtk.HBox(False, 0)
-        top_container.pack_end(self.panel, expand=True, fill=False, padding=4)
+        top_container.pack_end(self.panel, expand=True, fill=True, padding=4)
         #build left menu
         self.left_menu = gtk.VBox(False,0)
         self.panel.pack_start(self.left_menu, expand=False, fill=False, padding=4)
@@ -363,14 +363,14 @@ class GraphPlotter(gtk.Window):
         self.fig = figure(figsize=(15,8),facecolor='#f0ebe2')
         self.fig.subplots_adjust(left=0.03, bottom=0.04, right=0.97, top=0.97, hspace=0.06, wspace=0.06)
         self.canvas = Canvas(self.fig)
-        self.panel.pack_end(self.canvas,expand=True, fill=False, padding=4)
+        self.panel.pack_end(self.canvas,expand=True, fill=True, padding=4)
         #build toolbars
         menu = gtk.HBox(False, 0)
-        top_container.pack_start(menu, expand=False, fill=False, padding=4)
+        top_container.pack_start(menu, expand=False, fill=True, padding=4)
         toolbar = self.build_toolbar_button()
         menu.pack_start(toolbar, expand=False, fill=False, padding=4)
         matplotlib_toolbar = NavigationToolbar(self.canvas, self)
-        menu.pack_end(matplotlib_toolbar, expand=True, fill=False, padding=4)
+        menu.pack_end(matplotlib_toolbar, expand=True, fill=True, padding=4)
         self.show_all()
 
     def build_adjuster(self):
