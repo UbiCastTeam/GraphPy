@@ -8,6 +8,7 @@ from __future__ import print_function
 
 try: 
     import gtk
+    GTK_CELL_ACTIVATABLE = gtk.CELL_RENDERER_MODE_ACTIVATABLE 
     import gobject
     gobject.threads_init()
     from matplotlib.backends.backend_gtkagg import FigureCanvasGTK as Canvas
@@ -16,6 +17,7 @@ except ImportError as e:
     print('could not import gtk %s : %s. Trying with introspection' %(ImportError, e))
     try : 
         from gi.repository import Gtk as gtk
+        GTK_CELL_ACTIVATABLE = gtk.CellRendererMode.ACTIVATABLE
         from gi.repository import GObject as gobject 
         from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as Canvas
         from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
@@ -346,29 +348,29 @@ class GraphPlotter(gtk.Window):
         self.add(top_container)
         #build panel
         self.panel = gtk.HBox(False, 0)
-        top_container.pack_end(self.panel, expand=True)
+        top_container.pack_end(self.panel, expand=True, fill=False, padding=4)
         #build left menu
         self.left_menu = gtk.VBox(False,0)
-        self.panel.pack_start(self.left_menu, expand=False)
+        self.panel.pack_start(self.left_menu, expand=False, fill=False, padding=4)
         treeview = self.build_treeview()
         self.left_menu.add(treeview)
         #build right menu
         self.right_menu = gtk.VBox(False,0)
-        self.panel.pack_end(self.right_menu, expand=False)
+        self.panel.pack_end(self.right_menu, expand=False, fill=False, padding=4)
         adjuster = self.build_adjuster()
-        self.right_menu.pack_start(adjuster, expand=False)
+        self.right_menu.pack_start(adjuster, expand=False, fill=False, padding=4)
         #build grap panel
         self.fig = figure(figsize=(15,8),facecolor='#f0ebe2')
         self.fig.subplots_adjust(left=0.03, bottom=0.04, right=0.97, top=0.97, hspace=0.06, wspace=0.06)
         self.canvas = Canvas(self.fig)
-        self.panel.pack_end(self.canvas,expand=True)
+        self.panel.pack_end(self.canvas,expand=True, fill=False, padding=4)
         #build toolbars
         menu = gtk.HBox(False, 0)
-        top_container.pack_start(menu, expand=False)
+        top_container.pack_start(menu, expand=False, fill=False, padding=4)
         toolbar = self.build_toolbar_button()
-        menu.pack_start(toolbar, expand=False)
+        menu.pack_start(toolbar, expand=False, fill=False, padding=4)
         matplotlib_toolbar = NavigationToolbar(self.canvas, self)
-        menu.pack_end(matplotlib_toolbar, expand=True)
+        menu.pack_end(matplotlib_toolbar, expand=True, fill=False, padding=4)
         self.show_all()
 
     def build_adjuster(self):
@@ -377,7 +379,7 @@ class GraphPlotter(gtk.Window):
         spin = gtk.SpinButton(adjustment=adjust, climb_rate=0.0, digits=0)
         label = gtk.Label('Nombre de graphs :')
         adjuster_box.add(label)
-        adjuster_box.pack_end(spin, expand=False)
+        adjuster_box.pack_end(spin, expand=False, fill=False, padding=4)
         return adjuster_box
 
     def build_toolbar_button(self):
@@ -474,10 +476,10 @@ class DataSettingsDialog(gtk.Window):
         buttons = [['Name :', name_entry], ['Visible :', visible_entry], ['Position :', graph_entry], ['Color :', color_entry], ['Dots : (really slow)', dot_entry], ['Axe x', plot_x_entry]]
         for button in buttons :
             box = gtk.HBox()
-            dialog.vbox.pack_start(box)
+            dialog.vbox.pack_start(box, expand=True, fill=False, padding=4)
             title = gtk.Label(button[0])
-            box.pack_start(title, expand=True)
-            box.pack_end(button[1], expand=True)
+            box.pack_start(title, expand=True, fill=False, padding=4)
+            box.pack_end(button[1], expand=True, fill=False, padding=4)
             box.show()
             title.show()
             button[1].show()
@@ -503,7 +505,7 @@ class CellRendererClickablePixbuf(gtk.CellRendererPixbuf):
         self.emit('clicked', path)
     def __init__(self):
         gtk.CellRendererPixbuf.__init__(self)
-        self.set_property('mode', gtk.CELL_RENDERER_MODE_ACTIVATABLE)
+        self.set_property('mode', GTK_CELL_ACTIVATABLE)
 
 class ProgressDialog(gtk.Window):
     def __init__(self):
@@ -513,11 +515,11 @@ class ProgressDialog(gtk.Window):
         self.progress_label = gtk.Label('0%')
         self.progress_bar = gtk.ProgressBar()
         self.label = gtk.Label('Progress')
-        self.dialog.vbox.pack_start(self.progress_label, expand=True)
+        self.dialog.vbox.pack_start(self.progress_label, expand=True, fill=False, padding=4)
         self.progress_label.show()
-        self.dialog.vbox.pack_start(self.progress_bar, expand=True)
+        self.dialog.vbox.pack_start(self.progress_bar, expand=True, fill=False, padding=4)
         self.progress_bar.show()
-        self.dialog.vbox.pack_start(self.label, expand=True)
+        self.dialog.vbox.pack_start(self.label, expand=True, fill=False, padding=4)
         self.label.show()
         self.dialog.show()
 
