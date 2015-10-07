@@ -4,15 +4,20 @@
 #flavie lancereau
 #graph plotter
 
-try : 
+from __future__ import print_function
+
+try: 
     import gtk
-except ImportError,e :
-    print 'could not import gtk %s : %s. Trying with introspection' %(ImportError, e)
+    import gobject
+    gobject.threads_init()
+except ImportError as e:
+    print('could not import gtk %s : %s. Trying with introspection' %(ImportError, e))
     try : 
-        from gi.repository import Gtk
-    except ImportError,e :
+        from gi.repository import Gtk 
+        from gi.repository import GObject 
+    except ImportError as e:
         raise ImportError('could not import Gtk. Please make sure that you have pyGtk : %s' %e)
-try : 
+try: 
     import numpy as np
 except ImportError :
     raise ImportError('Could not import Numpy. Please make sure that you have Numpy')
@@ -34,14 +39,13 @@ try :
     from pylab import figure
 except ImportError :
     raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib' )
-import gobject
+
 import os
 from dictlist import DictList
 from threaded import thread_it
 import logging
 
 logger = logging.getLogger('GPy')
-gobject.threads_init()
 
 class GraphPlotter(gtk.Window):
     def __init__(self, files_path=list()):
@@ -150,7 +154,7 @@ class GraphPlotter(gtk.Window):
                 logger.debug('treview append : %s' %content['name'])
                 line = self.treestore.append( parent_line, (content['name'],None, gtk.STOCK_PREFERENCES ))
                 content['treeline'] = line
-        except Exception,e :
+        except Exception as e :
             logger.error('%s : %s' %(Exception, e))
 
     def on_name_edited(self, column, path, name):
@@ -229,7 +233,7 @@ class GraphPlotter(gtk.Window):
         try :
             logger.debug('draw line as %s%s' %(color,element['dot_type']))
             l = self.ax_list[element['graph_position']].plot( plot_x, plot_y, '%s%s' %(color,element['dot_type']), label=element['name'])
-        except Exception,e :
+        except Exception as e :
             logger.error('error when drawing datas %s : %s' %(Exception,e))
             return False 
         element['line'] = l
@@ -245,7 +249,7 @@ class GraphPlotter(gtk.Window):
         #self.ax_list[element['graph_position']].legend.mpl_connect('button_press_event', self.on_legend_press)
 
     def on_legend_press(self, event):
-        print 'you pressed', event.button, event.xdata, event.ydata
+        print('you pressed', event.button, event.xdata, event.ydata)
 
     def update_legend(self, graph_position):
         graph_lines = list()
@@ -258,9 +262,9 @@ class GraphPlotter(gtk.Window):
         if len(graph_lines) > 0 and len(graph_names) > 0 :
             legend = self.ax_list[graph_position].legend(graph_lines, graph_names, loc=1)
             legend.draggable(True)
-            #print '________________'
-            #print legend
-            #print dir(legend)
+            #print('________________'
+            #print(legend
+            #print(dir(legend)
 
     def update_limits(self, graph_position):
         displayed_datas = list()
@@ -280,7 +284,7 @@ class GraphPlotter(gtk.Window):
             else : min_y = min(min_y, min_current_data)
             if max_y is None : max_y = max_current_data
             else : max_y = max(max_y, max_current_data)
-        print 'set window limit y from %s to %s' %(min_y, max_y)
+        print('set window limit y from %s to %s' %(min_y, max_y))
         self.ax_list[graph_position].set_ylim([min_y, max_y])
 
         min_x = None
@@ -293,10 +297,10 @@ class GraphPlotter(gtk.Window):
             if max_x is None : max_x = max_current_x
             else : max_x = max(max_x, max_current_x)
         if min_x is not None and max_x is not None:
-            print 'set window limit x from %s to %s' %(min_x, max_x)
+            print('set window limit x from %s to %s' %(min_x, max_x))
             self.ax_list[graph_position].set_xlim([min_x, max_x])
         else :
-            print 'autoscale' 
+            print('autoscale') 
             lenght = np.max([len(data) for data in displayed_datas ])
             self.ax_list[graph_position].set_xlim([0, lenght])
         self.canvas.draw()
