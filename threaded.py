@@ -34,7 +34,7 @@ class Thread(threading.Thread):
             return_value = self._func(*self._args, **self._kwargs)
             self.result = return_value
             self.success = True
-        except Exception, e:
+        except Exception as e:
             self.result = e
             self.success = False
     
@@ -59,7 +59,7 @@ def _thread_it(daemon, func, *args, **kwargs):
     thread.daemon = daemon
     try:
         thread.start()
-    except Exception, e:
+    except Exception as e:
         logger.error("Cannot start thread %s for function %s with args %s and kwargs %s. Error is: %s", thread, func, args, kwargs, e)
         logger.info("Number of active threads: %s", threading.active_count())
         logger.info("Threads: %s", threading._active)

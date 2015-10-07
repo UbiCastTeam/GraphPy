@@ -10,31 +10,21 @@ try:
     import gtk
     import gobject
     gobject.threads_init()
+    from matplotlib.backends.backend_gtkagg import FigureCanvasGTK as Canvas
+    from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
 except ImportError as e:
     print('could not import gtk %s : %s. Trying with introspection' %(ImportError, e))
     try : 
-        from gi.repository import Gtk 
-        from gi.repository import GObject 
+        from gi.repository import Gtk as gtk
+        from gi.repository import GObject as gobject 
+        from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as Canvas
+        from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
     except ImportError as e:
         raise ImportError('could not import Gtk. Please make sure that you have pyGtk : %s' %e)
 try: 
     import numpy as np
 except ImportError :
     raise ImportError('Could not import Numpy. Please make sure that you have Numpy')
-try :
-    from matplotlib.backends.backend_gtkagg import FigureCanvasGTK as Canvas
-except ImportError :
-    try : 
-        from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as Canvas
-    except ImportError :
-        raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib')
-try :
-    from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
-except ImportError :
-    try : 
-        from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
-    except ImportError :
-        raise ImportError('Could not import Matplotlib gtk modules. Please make sure that you have Matplotlib' )
 try :
     from pylab import figure
 except ImportError :
